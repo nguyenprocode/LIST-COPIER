@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>THANH NGUYÊN - LIST COPIER</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0a0a0a, #1c2526);
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: #2e3532;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+
+    textarea, input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #4b5655;
+      background: #1c2526;
+      color: #e0e0e0;
+      font-size: 15px;
+      resize: vertical;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    textarea:focus, input:focus {
+      outline: none;
+      border-color: #6b7280;
+      box-shadow: 0 0 8px rgba(107, 114, 128, 0.3);
+    }
+
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #6b7280, #4b5655);
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 500;
+      transition: transform 0.2s ease, background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: linear-gradient(135deg, #8b9594, #6b7280);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    button:disabled {
+      background: #3a3f3e;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
+    hr {
+      border: none;
+      height: 1px;
+      background: #4b5655;
+      margin: 24px 0;
+    }
+
+    .list {
+      margin-top: 20px;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #b0b0b0;
+    }
+
+    .empty {
+      color: #6b7280;
+      font-style: italic;
+      text-align: center;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: inline-block;
+      color: #e0e0e0;
+    }
+
+    .btn-group {
+      margin-top: 12px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .container {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      button {
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+
+      .btn-group {
+        flex-direction: column;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>THANH NGUYÊN - LIST COPIER</h1>
+    <div>
+      <textarea id="newItems" placeholder="Nhập nội dung, mỗi dòng là 1 mục..."></textarea>
+      <div class="btn-group">
+        <button id="addBtn">➕ Thêm vào danh sách</button>
+      </div>
+    </div>
+    <hr>
+    <div>
+      <label>Mục hiện tại:</label>
+      <textarea id="current" readonly></textarea>
+      <div class="btn-group">
+        <button id="copyBtn">📋 Sao chép & xóa mục</button>
+        <button id="undoBtn" disabled>↩️ Hoàn tác</button>
+      </div>
+    </div>
+    <div class="list">
+      <strong>Còn lại: <span id="leftCount">0</span></strong>
+    </div>
+    <div id="emptyMsg" class="empty" style="display:none">Không còn mục nào</div>
+  </div>
+
+  <!-- JavaScript giữ nguyên -->
+  <script>
+    const LS_QUEUE = 'copy_queue_v2';
+    const LS_HISTORY = 'copy_history_v2';
+    let queue = load(LS_QUEUE) ?? [];
+    let history = load(LS_HISTORY) ?? [];
+
+    const $newItems = document.getElementById('newItems');
+    const $addBtn = document.getElementById('addBtn');
+    const $current = document.getElementById('current');
+    const $copyBtn = document.getElementById('copyBtn');
+    const $undoBtn = document.getElementById('undoBtn');
+    const $leftCount = document.getElementById('leftCount');
+    const $emptyMsg = document.getElementById('emptyMsg');
+
+    function save(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+    function load(key) {
+      try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+    }
+
+    function updateUI() {
+      $leftCount.textContent = queue.length;
+      $undoBtn.disabled = history.length === 0;
+      if (queue.length === 0) {
+        $current.value = '';
+        $emptyMsg.style.display = '';
+        $copyBtn.disabled = true;
+      } else {
+        $current.value = queue[0];
+        $emptyMsg.style.display = 'none';
+        $copyBtn.disabled = false;
+      }
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch {}
+      ta.remove();
+      return ok;
+    }
+
+    $addBtn.addEventListener('click', () => {
+      const lines = $newItems.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) return;
+      queue.push(...lines);
+      save(LS_QUEUE, queue);
+      $newItems.value = '';
+      updateUI();
+    });
+
+    $copyBtn.addEventListener('click', async () => {
+      if (queue.length === 0) return;
+      const text = queue[0];
+      const ok = await copyText(text);
+      if (ok) {
+        history.push(text);
+        queue.shift();
+        save(LS_QUEUE, queue);
+        save(LS_HISTORY, history);
+        updateUI();
+      } else {
+        alert('Không thể sao chép tự động. Hãy sao chép thủ công.');
+      }
+    });
+
+    $undoBtn.addEventListener('click', () => {
+      if (history.length === 0) return;
+      const last = history.pop();
+      queue.unshift(last);
+      save(LS_QUEUE, queue);
+      save(LS_HISTORY, history);
+      updateUI();
+    });
+
+    updateUI();
+  </script>
+</body>
+</html>
