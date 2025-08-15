@@ -161,6 +161,7 @@
       <div class="btn-group">
         <button id="copyBtn">📋 Sao chép & xóa mục</button>
         <button id="undoBtn" disabled>↩️ Hoàn tác</button>
+        <button id="clearAllBtn" style="background:linear-gradient(135deg,#d9534f,#b52b27)">🗑 Xóa tất cả</button>
       </div>
     </div>
     <div class="list">
@@ -169,7 +170,6 @@
     <div id="emptyMsg" class="empty" style="display:none">Không còn mục nào</div>
   </div>
 
-  <!-- JavaScript giữ nguyên -->
   <script>
     const LS_QUEUE = 'copy_queue_v2';
     const LS_HISTORY = 'copy_history_v2';
@@ -181,6 +181,7 @@
     const $current = document.getElementById('current');
     const $copyBtn = document.getElementById('copyBtn');
     const $undoBtn = document.getElementById('undoBtn');
+    const $clearAllBtn = document.getElementById('clearAllBtn');
     const $leftCount = document.getElementById('leftCount');
     const $emptyMsg = document.getElementById('emptyMsg');
 
@@ -249,6 +250,17 @@
       save(LS_QUEUE, queue);
       save(LS_HISTORY, history);
       updateUI();
+    });
+
+    $clearAllBtn.addEventListener('click', () => {
+      if (queue.length === 0 && history.length === 0) return;
+      if (confirm('Bạn có chắc muốn xóa toàn bộ danh sách?')) {
+        queue = [];
+        history = [];
+        save(LS_QUEUE, queue);
+        save(LS_HISTORY, history);
+        updateUI();
+      }
     });
 
     updateUI();
